@@ -1,0 +1,30 @@
+# PlatformIO, cubre arduino/ e idf/
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+.clangd/
+compile_commands.json
+
+# ESP-IDF generado por PlatformIO
+sdkconfig.*
+dependencies.lock
+managed_components/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Videos, pesan mucho. Los CSV de data/ si se versionan
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+*.swp
+*.log
