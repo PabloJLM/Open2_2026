@@ -1,5 +1,0 @@
-.pio/build/node_c3/FrameworkArduino/FirmwareMSC.cpp.o: \
- /home/pablo/.platformio/packages/framework-arduinoespressif32/cores/esp32/FirmwareMSC.cpp \
- /home/pablo/.platformio/packages/framework-arduinoespressif32/cores/esp32/FirmwareMSC.h \
- /home/pablo/.platformio/packages/framework-arduinoespressif32/cores/esp32/USBMSC.h \
- /home/pablo/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/qio_qspi/include/sdkconfig.h
