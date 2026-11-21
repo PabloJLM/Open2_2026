@@ -13,6 +13,8 @@ static QueueHandle_t q_rx;
 static volatile bool got_data = false;
 static volatile uint32_t n_rx_any = 0;   // todo lo que llego por ESP-NOW
 static volatile uint32_t n_rx_bad = 0;   // lo que se rechazo por largo o por magic
+static volatile uint32_t n_q_full = 0;   // paquetes buenos que no cupieron en la cola
+static uint32_t loop_max_us = 0;         // el loop mas lento del ultimo segundo
 static tk_t tk;
 static lk_parser_t lkp;
 
@@ -28,7 +30,7 @@ static void on_recv(const uint8_t *mac, const uint8_t *data, int len)
   rx_item_t it;
   it.rx_us = (uint32_t)esp_timer_get_time();
   memcpy(&it.pkt, data, sizeof(imu_pkt_t));
-  xQueueSend(q_rx, &it, 0);
+  if (xQueueSend(q_rx, &it, 0) != pdTRUE) n_q_full++;
   got_data = true;
 }
 
@@ -75,6 +77,7 @@ static void read_commands()
 
 void setup()
 {
+  Serial.setTxTimeoutMs(0);   // no bloquear si el USB esta lleno
   Serial.begin(115200);
   tk_init(&tk);
   memset(&lkp, 0, sizeof(lkp));
@@ -98,7 +101,13 @@ void loop()
 {
   static uint32_t t_mac_ms = 0;
   static uint32_t t_status_ms = 0;
+  static uint32_t t_diag_ms = 0;
+  static uint32_t t_prev_us = 0;
   rx_item_t it;
+
+  uint32_t t_now_us = (uint32_t)esp_timer_get_time();
+  if (t_prev_us && t_now_us - t_prev_us > loop_max_us) loop_max_us = t_now_us - t_prev_us;
+  t_prev_us = t_now_us;
 
   read_commands();
 
@@ -121,6 +130,20 @@ void loop()
   if (millis() - t_status_ms >= 1000) {
     t_status_ms = millis();
     send_status(t_status_ms);
+  }
+
+  // Diagnostico cada segundo, linea de texto que el PC ignora
+  if (millis() - t_diag_ms >= 1000) {
+    t_diag_ms = millis();
+    Serial.print("DIAG RX ");
+    Serial.print(n_rx_any);
+    Serial.print(" BAD ");
+    Serial.print(n_rx_bad);
+    Serial.print(" QFULL ");
+    Serial.print(n_q_full);
+    Serial.print(" LOOPMAX_US ");
+    Serial.println(loop_max_us);
+    loop_max_us = 0;
   }
 
   // Mientras no llegue nada, imprime la MAC para usar unicast si se quiere.
