@@ -10,7 +10,7 @@ Estado actual. El firmware NO se ha compilado con PlatformIO ni probado con los 
 common/packet.h      contrato de datos de los nodos, es la fuente unica
 common/link.h        protocolo serial del gateway con la PC, ver PROTOCOLO.md
 common/trunk.h       angulo de flexion, calibracion y comandos, corre en el gateway
-arduino/             version Arduino, entornos node_s3mini node_xiao gw_nano
+arduino/             version Arduino, entornos node_c3mini node_xiao gw_xiao
 idf/                 version ESP-IDF, mismos entornos
 tools/logger.py      registrador en la PC, guarda CSV crudo etiquetado
 tools/gwlink.py      lado PC del protocolo, para la GUI y pruebas por terminal
@@ -20,9 +20,9 @@ tools/sync.sh        copia packet.h, link.h y trunk.h a arduino/include y a idf/
 
 ## Roles
 
-- node_s3mini (ESP32-S3 Super Mini) es NODE_ID 0, va en la zona lumbar.
+- node_c3mini (ESP32-C3 Super Mini) es NODE_ID 0, va en la zona lumbar.
 - node_xiao (XIAO ESP32C3) es NODE_ID 1, va en la espalda alta o el esternon.
-- gw_nano es el gateway.
+- gw_xiao es el gateway, una segunda XIAO ESP32C3.
 
 Los NODE_ID son arbitrarios. Se cambian con -DNODE_ID en platformio.ini.
 
@@ -34,12 +34,12 @@ En `imu.cpp` de cada version hay un stub. `imu_init` y `imu_read` generan una ra
 
 ```
 cd arduino
-pio run -e gw_nano -t upload
-pio run -e node_s3mini -t upload
+pio run -e gw_xiao -t upload
+pio run -e node_c3mini -t upload
 pio run -e node_xiao -t upload
 ```
 
-Si la Nano no sube, pon la placa en modo bootloader con doble toque a reset.
+Si la XIAO no sube, mantén BOOT, pulsa RESET y suelta BOOT.
 
 Para probar el enlace con la rampa y sin sensor, en otra terminal.
 
@@ -52,10 +52,9 @@ La linea de estado muestra por nodo paquetes recibidos, paquetes perdidos y tick
 
 ## Version IDF
 
-Misma estructura de entornos dentro de `idf/`. El rol se decide con el flag ROLE_GW, que ya esta puesto en el entorno gw_nano. Sin ese flag se compila como nodo.
+Misma estructura de entornos dentro de `idf/`. El rol se decide con el flag ROLE_GW, que ya esta puesto en el entorno gw_xiao. Sin ese flag se compila como nodo.
 
-El gateway saca los marcos por USB Serial JTAG con el driver. Subir IDF a la Nano ESP32 reemplaza el bootloader de Arduino de la placa. Se puede restaurar despues con la herramienta de bootloader de Arduino. Esto es de memoria, confirmalo antes.
-
+El gateway saca los marcos por USB Serial JTAG con el driver. 
 ## Notas del protocolo
 
 - Cada paquete lleva 8 muestras, 62.5 ms. Un paquete perdido son 8 muestras perdidas.

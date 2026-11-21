@@ -8,6 +8,7 @@
 #include "driver/usb_serial_jtag.h"
 #include "esp_timer.h"
 #include "esp_now.h"
+#include "esp_wifi.h"
 #include "esp_mac.h"
 #include "packet.h"
 #include "link.h"
@@ -19,6 +20,8 @@
 
 static QueueHandle_t q_rx;
 static volatile bool got_data = false;
+static volatile uint32_t n_rx_any = 0;   // todo lo que llego por ESP-NOW
+static volatile uint32_t n_rx_bad = 0;   // lo que se rechazo por largo o por magic
 static tk_t tk;
 static lk_parser_t lkp;
 
@@ -30,8 +33,11 @@ static uint32_t now_ms(void)
 // Corre en la tarea de WiFi. Solo encola.
 static void on_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
 {
-  if (len != (int)sizeof(imu_pkt_t)) return;
-  if (data[0] != PKT_MAGIC) return;
+  n_rx_any++;
+  if (len != (int)sizeof(imu_pkt_t) || data[0] != PKT_MAGIC) {
+    n_rx_bad++;
+    return;
+  }
 
   rx_item_t it;
   it.rx_us = (uint32_t)esp_timer_get_time();
@@ -127,9 +133,13 @@ void role_run(void)
     // Mientras no llegue nada, imprime la MAC para usar unicast si se quiere.
     if (!got_data && esp_timer_get_time() - t_mac_us > 2000000) {
       t_mac_us = esp_timer_get_time();
-      char s[40];
-      int n = snprintf(s, sizeof(s), "GW_MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
-                       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+      uint8_t ch;
+      wifi_second_chan_t sc;
+      esp_wifi_get_channel(&ch, &sc);
+      char s[80];
+      int n = snprintf(s, sizeof(s), "GW_MAC %02X:%02X:%02X:%02X:%02X:%02X CH %u RX %lu RECHAZADOS %lu\r\n",
+                       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (unsigned)ch,
+                       (unsigned long)n_rx_any, (unsigned long)n_rx_bad);
       usb_serial_jtag_write_bytes(s, n, pdMS_TO_TICKS(20));
     }
   }

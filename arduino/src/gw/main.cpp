@@ -11,14 +11,19 @@
 
 static QueueHandle_t q_rx;
 static volatile bool got_data = false;
+static volatile uint32_t n_rx_any = 0;   // todo lo que llego por ESP-NOW
+static volatile uint32_t n_rx_bad = 0;   // lo que se rechazo por largo o por magic
 static tk_t tk;
 static lk_parser_t lkp;
 
 // Corre en la tarea de WiFi. Solo encola, nada de Serial aqui.
 static void on_recv(const uint8_t *mac, const uint8_t *data, int len)
 {
-  if (len != (int)sizeof(imu_pkt_t)) return;
-  if (data[0] != PKT_MAGIC) return;
+  n_rx_any++;
+  if (len != (int)sizeof(imu_pkt_t) || data[0] != PKT_MAGIC) {
+    n_rx_bad++;
+    return;
+  }
 
   rx_item_t it;
   it.rx_us = (uint32_t)esp_timer_get_time();
@@ -121,7 +126,16 @@ void loop()
   // Mientras no llegue nada, imprime la MAC para usar unicast si se quiere.
   if (!got_data && millis() - t_mac_ms > 2000) {
     t_mac_ms = millis();
+    uint8_t ch;
+    wifi_second_chan_t sc;
+    esp_wifi_get_channel(&ch, &sc);
     Serial.print("GW_MAC ");
-    Serial.println(WiFi.macAddress());
+    Serial.print(WiFi.macAddress());
+    Serial.print(" CH ");
+    Serial.print(ch);
+    Serial.print(" RX ");
+    Serial.print(n_rx_any);
+    Serial.print(" RECHAZADOS ");
+    Serial.println(n_rx_bad);
   }
 }
