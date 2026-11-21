@@ -1,7 +1,7 @@
 #pragma once
 
 // Canal WiFi que usan nodos y gateway. Debe ser el mismo en todos.
-#define CH_ESPNOW 1
+#define CH_ESPNOW 11
 
 // MAC del gateway. Con FF en los seis bytes se manda en broadcast,
 // no hay ACK ni reintentos, pero no hace falta conocer la MAC.
